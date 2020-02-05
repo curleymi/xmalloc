@@ -2,53 +2,6 @@
  *  Michael Curley
  *  cs3650
  *  ch02
- *
- *  notes:
- *   - bucket style allocator
- *
- *   - all pointers returned to caller are preceeded by a uin8_t flag
- *   - flag defs:
- *      - 0x00 - ARENA_NUM: bucket flag, indicates previous 4 bytes
- *              are the offset to the mmap page header, flag itself is
- *              the arena the pointer was xmalloced in
- *      - 0xFF: non bucket flag, indicates previous 8 bytes are the
- *              size of the allocation
- *   
- *   - every mmap is of size 2^21 (2 MB), however, all the pages
- *     without the page_header data are initially madvised as
- *     DONTNEED, thereby making the actual allocations to physical RAM
- *     much smaller
- *   
- *   - on xmalloc, the top of the g_Bucket_Stack is 'popped', if the
- *     stack is empty, and new ALLOC_CHUNK sized page is pushed
- *   
- *   - on xfree, the pointer is pushed back onto the stack by updating
- *     the page_header's bitmap at its offset location, if an entire
- *     page that does not have any page_header data is free the page
- *     is madvised with DONTNEED
- *   
- *   - on xrealloc, the pointer is attempted to be returned unchanged
- *     if the data still fits in the bucket and is greater than the
- *     previous bucket
- *
- *   - each stack has its own mutex for pushing and popping an entire
- *     mmap chunk to an arena stack
- *
- *   - arena style, each thread has its own favorite stack, if it
- *     fails to lock the stack it will move to the next arena stack
- *
- *   - due to the size of the allocated chunks, the mmap headers are
- *     quite large (about 4 to 5 4K pages), however since each
- *     mmap allows for a minimum of ~255 and a maximum of ~160000
- *     stack 'pops' there should be decent time between mmapping new
- *     memory, and since madvise DONTNEED is utilized, the physical
- *     mapping to RAM may not even occur
- *
- *   - each header has a last offset index
- *      - since the allocations occur in the bitmap from left to
- *        right, the last offset value is set
- *      - in worst case, every bit is checked and a new mmap occurs
- *      - in best case number of comparisons to pop is 1
  */
 
 #include <stdint.h>
